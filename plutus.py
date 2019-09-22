@@ -8,6 +8,9 @@ import hashlib
 import binascii
 import multiprocessing
 from ellipticcurve.privateKey import PrivateKey
+# Import numba for GPU
+from numba import vectorize
+
 
 DATABASE = r'database/MAR_23_2019/'
 
@@ -48,7 +51,7 @@ def public_key_to_address(public_key):
 	while n > 0:
 		n, remainder = divmod(n, 58)
 		output.append(alphabet[remainder])
-	for i in range(count): output.append(alphabet[0])
+	for i in range(count): output.append(alphabet[0])	# Need to make change to this line
 	return ''.join(output[::-1])
 
 def process(private_key, public_key, address, database):
@@ -84,14 +87,14 @@ def private_key_to_WIF(private_key):
 	alphabet = chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 	value = pad = 0
 	result = ''
-	for i, c in enumerate(var[::-1]): value += 256**i * c
-	while value >= len(alphabet):
-		div, mod = divmod(value, len(alphabet))
-		result, value = chars[mod] + result, div
+	for i, c in enumerate(var[::-1]): value += 256**i * c  	# Need to make change to this section
+	while value >= len(alphabet):				#	
+		div, mod = divmod(value, len(alphabet))		#
+		result, value = chars[mod] + result, div	#
 	result = chars[value] + result
-	for c in var:
-		if c == 0: pad += 1
-		else: break
+	for c in var:						# Need to make change to this section
+		if c == 0: pad += 1				#
+		else: break					#
 	return chars[0] * pad + result
 
 def main(database):
@@ -115,19 +118,21 @@ if __name__ == '__main__':
 	and O(1) complexity. Initialize the multiprocessing to target the main 
 	function with cpu_count() concurrent processes.
 	"""
-	database = [set() for _ in range(4)]
+	database = [set() for _ in range(4)] 	# This is not a generator, see Oleh Prypin’s answer
+						# on StackOverflow. Need to change this.  Working on it.
+						# https://stackoverflow.com/questions/13092267/if-range-is-a-generator-in-python-3-3-why-can-i-not-call-next-on-a-range
 	count = len(os.listdir(DATABASE))
 	half = count // 2
 	quarter = half // 2
-	for c, p in enumerate(os.listdir(DATABASE)):
-		print('\rreading database: ' + str(c + 1) + '/' + str(count), end = ' ')
-		with open(DATABASE + p, 'rb') as file:
-			if c < half:
-				if c < quarter: database[0] = database[0] | pickle.load(file)
-				else: database[1] = database[1] | pickle.load(file)
-			else:
-				if c < half + quarter: database[2] = database[2] | pickle.load(file)
-				else: database[3] = database[3] | pickle.load(file)
+	for c, p in enumerate(os.listdir(DATABASE)):							# Need to make change to this section
+		print('\rreading database: ' + str(c + 1) + '/' + str(count), end = ' ')		#
+		with open(DATABASE + p, 'rb') as file:							#
+			if c < half:									#
+				if c < quarter: database[0] = database[0] | pickle.load(file)		#
+				else: database[1] = database[1] | pickle.load(file)			#
+			else:										#
+				if c < half + quarter: database[2] = database[2] | pickle.load(file)	#
+				else: database[3] = database[3] | pickle.load(file)			#
 	print('DONE')
 
 	# To verify the database size, remove the # from the line below
